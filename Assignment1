@@ -143,5 +143,5 @@ mse_min <- dd_mse %>%
 # If I were a real estate investor, I would focus on housing age and household income, as these two factors have the greatest impact on housing prices. Secondly, I need to consider the location of the house. The price of the house on the island may be higher, while the house in the inland may have a negative impact on the price.
 
 ### Collaboration statement (10 points) 
-# I did this individual assignment by myself. I did not get any help from someone else.
+# I did this individual assignment by myself. I did not get any help from someone else. Github: https://github.com/hjiang97/BA810/blob/master/Assignment1
   
