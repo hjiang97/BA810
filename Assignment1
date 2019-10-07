@@ -1,0 +1,147 @@
+---
+title: 'BA810 individual assignement'
+author: Hui Jiang (U91673347)
+date: Oct 5, 2019
+output:
+pdf_document: default
+---
+  ### To complete this assignment, you will need to the use glmnet to fit a number of Lasso regressions to the CA housing dataset. Each Lasso will be fit using a different value of λ. 
+  # Then, you will produce a figure with the following elements:
+  #1. The x-axis should be λ, and it should be flipped so that larger values of λ appear on the left, and smaller values on the left – this is the opposite how we normally order the x-axis.
+  #2. The y-axis should be MSE.
+  #3. The plot should contain two lines with different colors: one line will be the MSE of your train data, and the other the MSE of your test data.
+  #4. Finally, the plot should be annotated with two points (the big dots in the example figure below) that mark the minimum point on each MSE curve.
+  
+### Set up & Load the CA housing dataset
+  
+install.packages(c("tidyverse", 
+                     "magrittr",
+                     "ggplot2", 
+                     "ggthemes",
+                     "glmnet",
+                     "scales"))
+library(tidyverse) 
+library(magrittr) 
+library(ggplot2) 
+library(ggthemes) 
+library(glmnet)
+theme_set(theme_bw())
+
+dd<- read_csv("Individual Assignment/housing.csv")
+
+## impute the missing data from total_bedrooms column
+total_bedrooms_median <- median(dd$total_bedrooms, na.rm = TRUE)
+
+dd <- dd %>%
+  replace_na(list("total_bedrooms"=total_bedrooms_median))
+
+## split our dataseet in train and test
+# use this piece of code as is 
+set.seed(91673347)
+train_offsets <- seq(5000)
+test_offsets <- 15000 + seq(3000)
+
+x_data <- model.matrix ( ~ -1 + 
+                           total_rooms + 
+                           total_bedrooms +
+                           households +
+                           housing_median_age +
+                           population +
+                           median_income +
+                           ocean_proximity,
+                         dd)
+# outcome is median house value in millions
+y_data <- dd$median_house_value / 1e6
+
+x_train <- x_data[train_offsets, ]
+y_train <- y_data[train_offsets]
+
+x_test <- x_data[test_offsets, ]
+y_test <- y_data[test_offsets]
+
+### Run Lasso regressions (10 points)
+# this will fit 100 lasso regressions for different values of lambda (chosen automatically)
+est <- glmnet(x_train, y_train, alpha = 1, nlambda = 100)
+est
+est$lambda
+
+### Predict responses (5 points)
+# use each of these 100 models to create predictions for both train and test.
+?predict
+y_train_hat <- predict(est, newx = x_train)
+y_test_hat <- predict(est, newx = x_test)
+  
+y_train_hat
+y_test_hat
+
+dim(y_train_hat)
+dim(y_test_hat)
+
+### Compute MSEs (5 points)
+  # ready to compute MSEs
+  # create two MSE vectors (one for train, one for test). 
+  # Each MSE vector will be of length 100, corresponding to the different values of λ.
+# write code to create a vector that contains 100 MSE estimates for the train data
+mse_train <- vector()
+for(i in 1 : ncol(y_train_hat)) {
+  mse_train[i] <- mean((y_train_hat[,i] - y_train) ^ 2)
+}
+# write code to create a vector that contains 100 MSE estimates for the test data
+mse_test <- vector()
+for(i in 1 : ncol(y_test_hat)) {
+  mse_test[i] <- mean((y_test_hat[,i] - y_test) ^ 2)
+}
+ 
+### Aggregate all MSEs in a single dataset (5 points)  
+  # create a new data frame (tibble) that contains these vectors
+  # The data frame have 3 columns: lambda, mse, and dataset, where dataset is either Train or Test.
+  # The data frame contain 200 rows: 100 for Train and 100 for Test.
+# create a tibble of train MSEs and lambdas
+  dd_mse_train <- tibble(
+    lambda = est$lambda,
+    mse = mse_train,
+    dataset ="Train"
+  )
+  # use the rbind command to combine dd_mse_train
+  # and dd_mse_test into a simgle data frame
+ dd_mse_test <- rbind(dd_mse, tibble(
+   lambda = est$lambda,
+   mse = mse_test,
+   dataset = "Test"
+ )) 
+ 
+View(dd_mse_test)
+
+ dd_mse <- rbind(dd_mse_train, dd_mse_test)
+ dd_mse
+ 
+mse_min <- dd_mse %>%
+  group_by(dataset) %>% 
+  filter(mse == min(mse))
+
+### Plot the MSEs (10 points)
+  # put together a data frame containing λ’s and MSEs 
+  # plot the figure described in the beginning of the assignment using ggplot2.
+? ggplot
+ ggplot(data = dd_mse, 
+        mapping = aes(lambda, mse, col = dataset))+
+        geom_line()
+        geom_point(data = mse_min, aes(lambda, mse))
+        
+### Discuss the results of the best fitting model (5 points)
+# inspect the value of λ that minimizes test MSE
+  lamda_min_mse_test <- mse_min$lamda[which(mse_min$dataset == 'Test')]      
+  print(lambda_min_mse_test)
+  
+# the coef function with λ=lambda_min_mse_test
+  coef(est, s = lambda_min_mse_test)
+  
+# Suppose that you are considering inversting in CA real estate. 
+# What are the main attributes of housing that you should focus on and why? 
+# Discuss in 1-2 sentences. 
+
+# If I were a real estate investor, I would focus on housing age and household income, as these two factors have the greatest impact on housing prices. Secondly, I need to consider the location of the house. The price of the house on the island may be higher, while the house in the inland may have a negative impact on the price.
+
+### Collaboration statement (10 points) 
+# I did this individual assignment by myself. I did not get any help from someone else.
+  
